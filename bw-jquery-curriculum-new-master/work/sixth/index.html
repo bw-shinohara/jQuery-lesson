@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../../common/css/reset.css">
+  <link rel="stylesheet" href="../../common/css/base.css">
+  <link rel="stylesheet" href="./css/style.css">
+  <title>Document</title>
+</head>
+<body>
+  <div class="wrapper" id="wrapper">
+    <button type="button" class="btn search-btn" id="pokemon_search">ポケモンを探す</button>
+  </div>
+  <script src="../../common/js/jquery.js"></script>
+  <script>
+    // 回答はここに書いてね
+
+$(function () {
+  const wrapper = $('#wrapper');
+
+  const searchBtnHtml = '<button type="button" class="btn search-btn" id="pokemon_search">ポケモンを探す</button>';
+  const failHtml = `
+    <p class="text">逃げられてしまった...</p>
+    <button class="btn mt" data-js="reset">戻る</button>
+  `;
+  const encountHtml = `
+    <p class="name"></p>
+    <div>
+      <img class="img" src="" alt="">
+    </div>
+    <div>
+      <button class="btn" id="catch">捕まえる</button>
+      <button class="btn" data-js="reset">逃げる</button>
+    </div>
+  `;
+  const doneHtml = `
+    <p class="name">ゲットしました</p>
+    <div>
+      <img class="img" src="" alt="モンスターボール">
+    </div>
+    <button class="btn" data-js="reset">戻る</button>
+  `;
+
+  // 「ポケモンを探す」ボタンを押したらポケモンの情報を取得する
+  wrapper.on('click', '#pokemon_search', function () {
+    const randomId = Math.floor(Math.random() * 151) + 1;
+    const apiUrl = `https://pokeapi.co/api/v2/pokemon/${randomId}`;
+
+    $.ajax({
+      url: apiUrl,
+      method: 'GET'
+    }).done(function (res) {
+      // リクエスト先から種族情報のURLを取得
+      const speciesUrl = res.species.url;
+      // リクエスト先からポケモン画像のURLを取得
+      const imageUrl = res.sprites.front_default;
+
+      // リクエスト先からのレスポンスの内容をコンソールで確認
+      console.log(res);
+
+      // ポケモンの日本語名を取得するためにさらにもう1回リクエスト
+      $.ajax({
+        url: speciesUrl,
+        method: 'GET'
+      }).done(function (speciesRes) {
+        const names = speciesRes.names;
+        const japaneseNameObj = names.find(name => name.language.name === 'ja-Hrkt');
+        const japaneseName = japaneseNameObj ? japaneseNameObj.name : res.name;
+
+        wrapper.html(encountHtml);
+        $('.name').text(japaneseName);
+        $('.img').attr('src', imageUrl);
+      }).fail(function (err) {
+        wrapper.html('<p>名前の取得に失敗しました。</p>' + searchBtnHtml);
+      });
+
+    }).fail(function (err) {
+      wrapper.html('<p>ポケモンの取得に失敗しました。</p>' + searchBtnHtml);
+    });
+  });
+
+  // 「捕まえる」ボタンを押したら50%の確率で成功失敗を分岐させる
+  wrapper.on('click', '#catch', function () {
+    const isSuccess = Math.random() < 0.5;
+    // 成功時はdoneHtmlをwrapperに表示する。画像にはモンスターボールを表示させる
+    if (isSuccess) {
+      wrapper.html(doneHtml);
+
+      $.ajax({
+      url: 'https://pokeapi.co/api/v2/item/4/',
+      method: 'GET'
+      }).done(function(res) {
+      let ballImageUrl = res.sprites.default;
+      $('.img').attr('src', ballImageUrl); // モンスターボール画像を表示
+      });
+
+    } 
+    // 失敗時はfailHtmlをwrapperに表示する。
+    else {
+      wrapper.html(failHtml);
+    }
+  });
+
+  
+  // 戻る、逃げるボタンを押した時
+  wrapper.on('click', '[data-js="reset"]', function () {
+    wrapper.html(searchBtnHtml);
+  });
+});
+  </script>
+</body>
+</html>
